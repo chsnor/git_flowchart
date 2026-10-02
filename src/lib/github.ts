@@ -5,10 +5,10 @@ import { ParsedGitHubUrl } from '../types';
  * ฟังก์ชันสำหรับแยกค่า owner และชื่อ repo ออกจาก URL ของ GitHub
  */
 export function parseGitHubUrl(url: string): ParsedGitHubUrl | null {
-  // TODO 1.1: ตรวจสอบความถูกต้องเบื้องต้น (Input Validation)
-  // TODO 1.2: ทำความสะอาดข้อความ URL (Sanitization)
-  // TODO 1.3: ลบส่วนเกินที่ไม่เกี่ยวข้องออก (Cleanup)
-  // TODO 1.4: สกัดค่า owner และ repo
+  // TODO 1.1: ตรวจสอบความถูกต้องเบื้องต้น (Input Validation) - ตัดช่องว่าง และเช็คค่าว่าง
+  // TODO 1.2: ตรวจสอบว่าเป็นโดเมน github.com หรือไม่
+  // TODO 1.3: ลบส่วนเกินที่ไม่เกี่ยวข้องออก (เช่น .git, query string, hash, /tree/main)
+  // TODO 1.4: สกัดค่า owner และ repo ส่งกลับเป็น Object
   throw new Error('ยังไม่ได้เขียนฟังก์ชัน parseGitHubUrl');
 }
 
@@ -16,7 +16,7 @@ export function parseGitHubUrl(url: string): ParsedGitHubUrl | null {
  * ฟังก์ชันสร้าง URL สำหรับเรียก GitHub REST API (Tree API แบบ Recursive)
  */
 export function buildGitHubApiUrl(owner: string, repo: string, branch = 'main'): string {
-  // TODO 1.5: ประกอบ URL สำหรับเรียก GitHub Tree API
+  // TODO 1.5: ประกอบ URL สำหรับเรียก GitHub Tree API ในรูปแบบ https://api.github.com/repos/{owner}/{repo}/git/trees/{branch}?recursive=1
   throw new Error('ยังไม่ได้เขียนฟังก์ชัน buildGitHubApiUrl');
 }
 
@@ -28,4 +28,12 @@ export function buildGitHubHeaders(token?: string): Record<string, string> {
   // TODO 1.6: สร้าง headers พื้นฐานที่มี User-Agent: 'GitFlow-Visualizer'
   // TODO 1.7: ถ้ามี token ส่งเข้ามา (และไม่ใช่สตริงว่าง) ให้แนบ Authorization: `Bearer ${token.trim()}`
   throw new Error('ยังไม่ได้เขียนฟังก์ชัน buildGitHubHeaders');
+}
+
+/**
+ * ฟังก์ชันสร้าง URL สำหรับดึง Raw Code ของไฟล์จริงเพื่อใช้ใน Side Inspector
+ */
+export function buildGitHubRawUrl(owner: string, repo: string, filePath: string, branch = 'main'): string {
+  // TODO 1.8: ประกอบ URL ในรูปแบบ https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{filePath}
+  throw new Error('ยังไม่ได้เขียนฟังก์ชัน buildGitHubRawUrl');
 }

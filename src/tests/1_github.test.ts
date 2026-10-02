@@ -1,8 +1,8 @@
 // src/tests/1_github.test.ts
 import { describe, it, expect } from 'vitest';
-import { parseGitHubUrl, buildGitHubApiUrl, buildGitHubHeaders } from '../lib/github';
+import { parseGitHubUrl, buildGitHubApiUrl, buildGitHubHeaders, buildGitHubRawUrl } from '../lib/github';
 
-describe('คนที่ 1: github.ts', () => {
+describe('คนที่ 1: github.ts (Data Ingestion & GitHub Service)', () => {
   describe('parseGitHubUrl', () => {
     it('แกะ url แบบ https ปกติได้', () => {
       expect(parseGitHubUrl('https://github.com/chsnor/testauth')).toEqual({
@@ -111,6 +111,18 @@ describe('คนที่ 1: github.ts', () => {
     it('ถ้า token มีเว้นวรรคหัวท้าย ต้องตัด trim ให้อัตโนมัติ', () => {
       const headers = buildGitHubHeaders('  ghp_myfaketoken12345  ');
       expect(headers['Authorization']).toBe('Bearer ghp_myfaketoken12345');
+    });
+  });
+
+  describe('buildGitHubRawUrl (ดึงโค้ดจริงสำหรับ Side Inspector)', () => {
+    it('สร้าง URL ดึง raw code จาก GitHub ได้ถูกต้อง', () => {
+      const url = buildGitHubRawUrl('chsnor', 'testauth', 'src/app/page.tsx', 'main');
+      expect(url).toBe('https://raw.githubusercontent.com/chsnor/testauth/main/src/app/page.tsx');
+    });
+
+    it('ใช้ branch เริ่มต้นเป็น main หากไม่ระบุ branch', () => {
+      const url = buildGitHubRawUrl('chsnor', 'testauth', 'src/actions/auth.ts');
+      expect(url).toBe('https://raw.githubusercontent.com/chsnor/testauth/main/src/actions/auth.ts');
     });
   });
 });

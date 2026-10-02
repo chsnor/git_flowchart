@@ -6,18 +6,23 @@
 export function validateUrlInput(input: string): { isValid: boolean; errorMessage: string | null } {
   // TODO 4.1: ตรวจสอบความยาวและค่าว่าง (Empty & Whitespace Check)
   // TODO 4.2: ตรวจสอบความปลอดภัยเบื้องต้น (XSS / Suspicious Input Guard)
-  // TODO 4.3: ตรวจสอบโดเมน (Domain Verification)
-  // TODO 4.4: เมื่อผ่านการตรวจสอบทั้งหมด
+  // TODO 4.3: ตรวจสอบโดเมน (Domain Verification) - ต้องมี github.com
+  // TODO 4.4: เมื่อผ่านการตรวจสอบทั้งหมด ให้ส่ง isValid: true
   throw new Error('ยังไม่ได้เขียนฟังก์ชัน validateUrlInput');
 }
 
 /**
  * ฟังก์ชันคำนวณและจัดรูปแบบตัวเลขสถิติสำหรับนำไปแสดงบนหน้าจอ Dashboard
  */
-export function formatRepoStats(totalFiles: number, filteredFiles: number) {
+export function formatRepoStats(totalFiles: number, filteredFiles: number): {
+  rawCount: number;
+  analyzedCount: number;
+  ignoredCount: number;
+  summaryText: string;
+} {
   // TODO 4.5: ป้องกันข้อผิดพลาดทางตัวเลข (Math Safety)
   // TODO 4.6: สร้างข้อความสรุปผล (Summary Text Construction)
-  // TODO 4.7: ส่งคืนค่าในรูปแบบ Object
+  // TODO 4.7: ส่งคืนค่าในรูปแบบ Object { rawCount, analyzedCount, ignoredCount, summaryText }
   throw new Error('ยังไม่ได้เขียนฟังก์ชัน formatRepoStats');
 }
 
@@ -34,6 +39,22 @@ export function calculateHealthScore(totalRelations: number, filteredFiles: numb
   ratio: number;
   description: string;
 } {
-  // TODO 4.13: คำนวณ ratio และตัดเกรด A, B, C ตามข้อกำหนด
+  // TODO 4.8: คำนวณ ratio และตัดเกรด A, B, C ตามข้อกำหนด
   throw new Error('ยังไม่ได้เขียนฟังก์ชัน calculateHealthScore');
+}
+
+/**
+ * ฟังก์ชันเข้ารหัส State ของหน้าจอเพื่อสร้าง URL ที่สามารถแชร์ให้เพื่อนเปิดดูได้ทันที
+ */
+export function encodeShareableState(url: string, activeNode?: string): string {
+  // TODO 4.9: แปลง Object { url, activeNode } ให้เป็น Base64 string ที่ปลอดภัยสำหรับ URL query string
+  throw new Error('ยังไม่ได้เขียนฟังก์ชัน encodeShareableState');
+}
+
+/**
+ * ฟังก์ชันถอดรหัส State จาก URL query string เมื่อเพื่อนกดเปิดลิงก์แชร์
+ */
+export function decodeShareableState(encodedStr: string): { url: string; activeNode?: string } | null {
+  // TODO 4.10: ถอดรหัส Base64 string และแปลงกลับเป็น Object { url, activeNode }
+  throw new Error('ยังไม่ได้เขียนฟังก์ชัน decodeShareableState');
 }

@@ -1,20 +1,20 @@
 # GitFlow Visualizer
 
-เว็บช่วยแปลงโครงสร้างโฟลเดอร์และไฟล์จาก GitHub ให้ออกมาเป็นรูป Flowchart ไดอะแกรมเข้าใจง่ายๆ ไม่ต้องไล่เปิดดูทีละไฟล์ และไม่ต้องใช้ Database เลยสักตัว
+เว็บช่วยแปลงโครงสร้างโฟลเดอร์และไฟล์จาก GitHub ให้กลายเป็น Interactive Architecture Flowchart ด้วย Next.js App Router, React Flow และ PrismJS สำหรับนักพัฒนาสำรวจความสัมพันธ์ของโค้ด Event และ Server Action ได้ทันทีโดยไม่ต้องใช้ Database
 
 ---
 
 ## สารบัญ
 1. [วิธีเปิดโปรเจกต์ครั้งแรก](#1-วิธีเปิดโปรเจกต์ครั้งแรก)
 2. [ขั้นตอนการทำงานด้วย Git & ส่ง Pull Request (ทุกคนต้องทำตามนี้)](#2-ขั้นตอนการทำงานด้วย-git--ส่ง-pull-request-ทุกคนต้องทำตามนี้)
-3. [ตารางหน้าที่และคำสั่งรันเทสของตัวเอง](#3-ตารางหน้าที่และคำสั่งรันเทสของตัวเอง)
+3. [ตารางหน้าที่และคำสั่งรันเทสประจำตัวทั้ง 6 คน](#3-ตารางหน้าที่และคำสั่งรันเทสประจำตัวทั้ง-6-คน)
 4. [ตัวเลือกเสริม: รันผ่าน Docker](#4-ตัวเลือกเสริม-รันผ่าน-docker)
 
 ---
 
 ## 1. วิธีเปิดโปรเจกต์ครั้งแรก
 
-หลังจากที่โคลนโค้ดลงมาในเครื่องตัวเองแล้ว ให้ทำตาม 3 สเต็ปนี้:
+หลังจากที่โคลนโค้ดลงมาในเครื่องตัวเองแล้ว ให้ทำตาม 3 ขั้นตอนนี้:
 
 1. โคลนโค้ดลงเครื่อง:
    ```bash
@@ -25,7 +25,7 @@
    ```bash
    npm install
    ```
-3. ลองรันหน้าเว็บดู:
+3. รันหน้าเว็บทดสอบ:
    ```bash
    npm run dev
    ```
@@ -50,21 +50,25 @@
   ```
 - คนที่ 3:
   ```bash
-  git checkout -b feat/person-3-generator
+  git checkout -b feat/person-3-visualizer
   ```
 - คนที่ 4:
   ```bash
-  git checkout -b feat/person-4-frontend
+  git checkout -b feat/person-4-dashboard
   ```
 - คนที่ 5:
   ```bash
-  git checkout -b feat/person-5-qa
+  git checkout -b feat/person-5-inspector
+  ```
+- คนที่ 6:
+  ```bash
+  git checkout -b feat/person-6-pipeline-qa
   ```
 
 ---
 
 ### สเต็ป 2: ลงมือเขียนโค้ดและรันเทสให้ผ่าน
-เปิดดู TODO ในแถบด้านซ้าย หรือดูคอมเมนต์ในไฟล์ของตัวเอง แล้วเขียนโค้ดไปเรื่อยๆ จนกว่าคำสั่งรันเทสของตัวเองจะขึ้นสีเขียว (PASS) ครบทุกข้อ
+เปิดดู TODO ในคอมเมนต์ของไฟล์ตัวเอง แล้วเขียนฟังก์ชันไปเรื่อยๆ จนกว่าคำสั่งรันเทสของตัวเองจะขึ้นสีเขียว (PASS) ครบทุกข้อ
 
 ---
 
@@ -94,23 +98,24 @@ git push -u origin <ชื่อ_branch_ของตัวเอง>
 4. กดปุ่ม **"Create pull request"**
 5. บอท GitHub Actions จะช่วยรันเทสบนคลาวด์ให้อัตโนมัติ:
    - ถ้าขึ้นเครื่องหมายถูกสีเขียว แปลว่าผ่าน พร้อมเอางานเข้า main
-   - ถ้าขึ้นกากบาทสีแดง ให้กดดูว่าติดข้อไหน แล้วกลับไปแก้ในเครื่อง จากนั้น `git add .` -> `git commit` -> `git push` อีกรอบ
+   - ถ้าขึ้นกากบาทสีแดง ให้กดดูว่าติดข้อไหน แล้วกลับไปแก้ในเครื่อง จากนั้น commit และ push อีกรอบ
 
 ---
 
-## 3. ตารางหน้าที่และคำสั่งรันเทสของตัวเอง
+## 3. ตารางหน้าที่และคำสั่งรันเทสประจำตัวทั้ง 6 คน
 
-แต่ละคนมีไฟล์ที่ต้องเขียน และคำสั่งรันเทสเฉพาะของตัวเองตามนี้เลย:
+แต่ละคนมีไฟล์ที่ต้องรับผิดชอบ และคำสั่งรันเทสเฉพาะของตัวเองตามนี้:
 
-| คนที่ | ไฟล์ที่ต้องรับผิดชอบ | คำสั่งรันเทสเฉพาะคน |
-| :---: | :--- | :--- |
-| **1** | `src/lib/github.ts` | `npx vitest run src/tests/1_github.test.ts` |
-| **2** | `src/lib/parser.ts` | `npx vitest run src/tests/2_parser.test.ts` |
-| **3** | `src/lib/generator.ts` | `npx vitest run src/tests/3_generator.test.ts` |
-| **4** | `src/lib/ui-helper.ts` และ `src/app/page.tsx` | `npx vitest run src/tests/4_frontend_ui.test.ts` |
-| **5** | ภาพรวมทั้งระบบและการนำเสนอ | `npx vitest run src/tests/5_integration_pipeline.test.ts` |
+| คนที่ | บทบาท / ตำแหน่ง | ไฟล์ที่ต้องรับผิดชอบ | คำสั่งรันเทสเฉพาะคน |
+| :---: | :--- | :--- | :--- |
+| **1** | Data Ingestion & GitHub Service | `src/lib/github.ts` | `npx vitest run src/tests/1_github.test.ts` |
+| **2** | AST & Event Parser Engine | `src/lib/parser.ts` | `npx vitest run src/tests/2_parser.test.ts` |
+| **3** | Interactive Flow Visualizer | `src/lib/generator.ts`, `src/components/FlowCanvas.tsx` | `npx vitest run src/tests/3_generator.test.ts` |
+| **4** | Dashboard & State Orchestrator | `src/lib/ui-helper.ts`, `src/app/page.tsx` | `npx vitest run src/tests/4_frontend_ui.test.ts` |
+| **5** | Side Inspector & Code Viewer | `src/lib/code-viewer.ts`, `src/components/SideDrawer.tsx` | `npx vitest run src/tests/5_side_drawer.test.ts` |
+| **6** | Integration Pipeline, QA & Deployment | `src/lib/pipeline.ts`, Docker, CI/CD | `npx vitest run src/tests/6_integration_pipeline.test.ts` |
 
-ถ้าอยากรันตรวจพร้อมกันทุกคนทีเดียว ให้ใช้คำสั่ง:
+หากต้องการรันตรวจเทสพร้อมกันทุกคนทีเดียว (ทั้งหมด 61 ข้อ):
 ```bash
 npm test
 ```

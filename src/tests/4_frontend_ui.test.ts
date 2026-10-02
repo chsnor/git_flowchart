@@ -1,8 +1,14 @@
 // src/tests/4_frontend_ui.test.ts
 import { describe, it, expect } from 'vitest';
-import { validateUrlInput, formatRepoStats, calculateHealthScore } from '../lib/ui-helper';
+import {
+  validateUrlInput,
+  formatRepoStats,
+  calculateHealthScore,
+  encodeShareableState,
+  decodeShareableState
+} from '../lib/ui-helper';
 
-describe('คนที่ 4: ui-helper.ts', () => {
+describe('คนที่ 4: ui-helper.ts (Dashboard & State Orchestrator)', () => {
   describe('validateUrlInput', () => {
     it('ถ้าไม่พิมพ์อะไรเลย หรือเคาะ space มา ให้แจ้งเตือนว่ากรุณากรอก URL', () => {
       expect(validateUrlInput('')).toEqual({ isValid: false, errorMessage: 'กรุณากรอก GitHub URL' });
@@ -74,6 +80,27 @@ describe('คนที่ 4: ui-helper.ts', () => {
     it('ถ้าไม่มีไฟล์โค้ด (0 ไฟล์) ต้องได้เกรด N/A', () => {
       const score = calculateHealthScore(0, 0);
       expect(score.grade).toBe('N/A');
+    });
+  });
+
+  describe('encodeShareableState และ decodeShareableState (ระบบแชร์สถานะไดอะแกรม)', () => {
+    it('เข้ารหัสและถอดรหัส URL State กลับมาได้ถูกต้องครบถ้วน', () => {
+      const originalUrl = 'https://github.com/chsnor/testauth';
+      const activeNode = 'src/app/page.tsx';
+
+      const encoded = encodeShareableState(originalUrl, activeNode);
+      expect(typeof encoded).toBe('string');
+      expect(encoded.length).toBeGreaterThan(0);
+
+      const decoded = decodeShareableState(encoded);
+      expect(decoded).toEqual({
+        url: originalUrl,
+        activeNode: activeNode
+      });
+    });
+
+    it('ถ้าถอดรหัสข้อความที่ผิดรูปแบบ ให้ส่งค่ากลับเป็น null', () => {
+      expect(decodeShareableState('invalid-base64-string!!')).toBeNull();
     });
   });
 });
