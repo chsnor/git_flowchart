@@ -74,7 +74,7 @@ export async function runAnalysisPipeline(
     try {
       const response = await fetch(
         buildGitHubApiUrl(owner, repo),
-        buildGitHubHeaders(token),
+        { headers: buildGitHubHeaders(token) },
       );
 
       if (!response.ok) {
@@ -91,7 +91,10 @@ export async function runAnalysisPipeline(
       if (Array.isArray(json.tree)) {
         treeData = json.tree;
       }
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.message && error.message.includes("❌")) {
+        throw error;
+      }
       console.error("❌ ไม่สามารถเชื่อมต่อ GitHub ได้:", error);
       throw new Error(
         "ไม่สามารถเชื่อมต่อ GitHub ได้ กรุณาตรวจสอบอินเทอร์เน็ตหรือแนบ Token",
