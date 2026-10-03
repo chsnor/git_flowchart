@@ -49,6 +49,8 @@ export interface AnalysisResult {
   nodes: FlowNodeItem[];
   edges: FlowEdgeItem[];
   mermaidSyntax: string;
+  isCached?: boolean;
+  executionTimeMs?: number;
 }
 
 export interface SideDrawerState {

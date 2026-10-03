@@ -129,17 +129,21 @@
 ---
 
 ## 👤 คนที่ 6: Integration Pipeline, QA & Deployment
-**ไฟล์ที่รับผิดชอบ:** `src/lib/pipeline.ts`, `src/tests/6_integration_pipeline.test.ts` (3 ข้อ), Dockerfile, CI/CD  
+**ไฟล์ที่รับผิดชอบ:** `src/lib/pipeline.ts`, `src/tests/6_integration_pipeline.test.ts` (4 ข้อ), Dockerfile, CI/CD  
 **ไฟล์เทส:** `src/tests/6_integration_pipeline.test.ts`
 
 ### ขอบเขตงาน (Requirements):
 1. **การประกอบ Pipeline ครบวงจร (Function: `runAnalysisPipeline`):**
    - รวบรวมฟังก์ชันของคนที่ 1 (Fetch API), คนที่ 2 (Filter, Classify, Action Parser), และคนที่ 3 (Flow Elements Builder) ให้ทำงานต่อกันอย่างลื่นไหล
    - รองรับการรับทั้ง URL จริงจากภายนอก และ Mock Data สำหรับการรันเทสออฟไลน์
-2. **การทดสอบความเร็วและ Performance Benchmark:**
+2. **ระบบ In-Memory Cache (`pipelineCache` & `clearPipelineCache`):**
+   - ใช้ `Map<string, AnalysisResult>` จัดเก็บผลลัพธ์ของ URL ที่เคยวิเคราะห์แล้ว
+   - หากมีการเรียก URL ซ้ำ ให้ส่งผลลัพธ์จากแคชกลับทันทีพร้อมป้าย `isCached: true` ลดภาระ Network และแก้ปัญหา GitHub Rate Limit
+   - วัดเวลาประมวลผลจริงด้วย `performance.now()` และแนบค่า `executionTimeMs`
+3. **การทดสอบความเร็วและ Performance Benchmark:**
    - ทดสอบ Stress Test กับคลังขนาด 500 ไฟล์ ต้องประมวลผลเสร็จในเวลาไม่เกิน 150ms
-3. **การจัดการ Container และ CI/CD:**
+4. **การจัดการ Container และ CI/CD:**
    - ดูแลคอนฟิก `Dockerfile` และ `compose.yaml` ให้รันแอปได้บนทุกเครื่อง
    - ตรวจสอบ GitHub Actions CI ให้รัน `npm test` และ `npm run build` ผ่าน 100% ทุกครั้งที่มี Pull Request
-4. **รายงานการทดสอบ:**
-   - ควบคุมการรันเทสทั้งหมด 61 ข้อจากสมาชิกทั้ง 6 คนให้ผ่านครบถ้วนก่อนส่งงาน
+5. **รายงานการทดสอบ:**
+   - ควบคุมการรันเทสทั้งหมด 71 ข้อจากสมาชิกทั้ง 6 คนให้ผ่านครบถ้วนก่อนส่งงาน

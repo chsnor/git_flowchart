@@ -1,9 +1,13 @@
 // src/tests/6_integration_pipeline.test.ts
-import { describe, it, expect } from 'vitest';
-import { runAnalysisPipeline } from '../lib/pipeline';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { runAnalysisPipeline, clearPipelineCache, pipelineCache } from '../lib/pipeline';
 import { GitHubTreeItem } from '../types';
 
 describe('คนที่ 6: pipeline.ts (Integration Pipeline, QA & Deployment)', () => {
+  beforeEach(() => {
+    clearPipelineCache();
+  });
+
   it('ทดสอบโฟลว์ครบวงจร: URL -> กรองไฟล์ -> สกัด Action/Event -> สร้าง React Flow Nodes/Edges และ Mermaid', async () => {
     const inputUrl = 'https://github.com/chsnor/testauth.git';
 
@@ -56,6 +60,23 @@ describe('คนที่ 6: pipeline.ts (Integration Pipeline, QA & Deployment)
 
     // ตรวจสอบ Mermaid Syntax ว่ามีข้อมูล
     expect(result.mermaidSyntax).toContain('graph TD');
+  });
+
+  it('ทดสอบระบบ In-Memory Cache: วิเคราะห์ซ้ำ URL เดิมต้องดึงจากแคชทันทีโดยไม่ต้องคำนวณใหม่', async () => {
+    const inputUrl = 'https://github.com/chsnor/testauth';
+    const mockTree: GitHubTreeItem[] = [
+      { path: 'src/app/page.tsx', mode: '100644', type: 'blob', sha: '1' }
+    ];
+
+    // ครั้งแรก: ต้องประมวลผลใหม่ และบันทึกลงแคช (isCached เป็น false)
+    const firstResult = await runAnalysisPipeline(inputUrl, undefined, mockTree);
+    expect(firstResult.isCached).toBe(false);
+    expect(pipelineCache.has(inputUrl)).toBe(true);
+
+    // ครั้งที่สอง: ต้องดึงผลลัพธ์จากแคชทันที (isCached เป็น true)
+    const secondResult = await runAnalysisPipeline(inputUrl, undefined, mockTree);
+    expect(secondResult.isCached).toBe(true);
+    expect(secondResult.repoName).toBe('testauth');
   });
 
   it('ทดสอบความเร็วและ Performance Benchmark: ทดสอบกับ 500 ไฟล์ ต้องประมวลผลเสร็จในเสี้ยววินาที', async () => {
