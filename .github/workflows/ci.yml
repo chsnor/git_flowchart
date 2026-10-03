@@ -25,4 +25,17 @@ jobs:
         run: npm ci
 
       - name: Run Vitest
-        run: npm test
+        shell: bash
+        run: |
+          REF_NAME="${{ github.head_ref || github.ref_name }}"
+          if [[ "$REF_NAME" =~ feat/person-([1-6]) ]]; then
+            PERSON="${BASH_REMATCH[1]}"
+            echo "🧪 Running targeted unit tests for Person $PERSON ($REF_NAME)..."
+            npx vitest run src/tests/${PERSON}_*.test.ts
+          else
+            echo "🧪 Running full test suite for main..."
+            npm test
+          fi
+
+      - name: Run Next.js Build
+        run: npm run build
