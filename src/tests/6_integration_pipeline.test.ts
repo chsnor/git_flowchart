@@ -102,4 +102,13 @@ describe('คนที่ 6: pipeline.ts (Integration Pipeline, QA & Deployment)
       'URL ต้องมาจาก github.com เท่านั้น'
     );
   });
+
+  it('API Route POST /api/analyze: ถ้าไม่ส่ง URL มาต้องตอบกลับ status 400', async () => {
+    const { POST } = await import('../app/api/analyze/route');
+    const fakeReq = {
+      json: async () => ({})
+    };
+    const res = await POST(fakeReq as any);
+    expect(res.status).toBe(400);
+  });
 });

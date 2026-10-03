@@ -113,9 +113,9 @@ git push -u origin <ชื่อ_branch_ของตัวเอง>
 | **3** | Interactive Flow Visualizer | `src/lib/generator.ts`, `src/components/FlowCanvas.tsx` | `npx vitest run src/tests/3_generator.test.ts` |
 | **4** | Dashboard & State Orchestrator | `src/lib/ui-helper.ts`, `src/app/page.tsx` | `npx vitest run src/tests/4_frontend_ui.test.ts` |
 | **5** | Side Inspector & Code Viewer | `src/lib/code-viewer.ts`, `src/components/SideDrawer.tsx` | `npx vitest run src/tests/5_side_drawer.test.ts` |
-| **6** | Integration Pipeline, QA & Deployment | `src/lib/pipeline.ts`, Docker, CI/CD | `npx vitest run src/tests/6_integration_pipeline.test.ts` |
+| **6** | Integration Pipeline, QA & Deployment | `src/lib/pipeline.ts`, `src/app/api/analyze/route.ts`, Docker, CI/CD | `npx vitest run src/tests/6_integration_pipeline.test.ts` |
 
-หากต้องการรันตรวจเทสพร้อมกันทุกคนทีเดียว (ทั้งหมด 61 ข้อ):
+หากต้องการรันตรวจเทสพร้อมกันทุกคนทีเดียว (ทั้งหมด 74 ข้อ):
 ```bash
 npm test
 ```

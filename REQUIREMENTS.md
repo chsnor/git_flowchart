@@ -131,7 +131,7 @@
 ---
 
 ## 👤 คนที่ 6: Integration Pipeline, QA & Deployment
-**ไฟล์ที่รับผิดชอบ:** `src/lib/pipeline.ts`, `src/tests/6_integration_pipeline.test.ts` (4 ข้อ), Dockerfile, CI/CD  
+**ไฟล์ที่รับผิดชอบ:** `src/lib/pipeline.ts`, `src/app/api/analyze/route.ts`, `src/tests/6_integration_pipeline.test.ts` (5 ข้อ), Dockerfile, CI/CD  
 **ไฟล์เทส:** `src/tests/6_integration_pipeline.test.ts`
 
 ### ขอบเขตงาน (Requirements):
@@ -147,5 +147,9 @@
 4. **การจัดการ Container และ CI/CD:**
    - ดูแลคอนฟิก `Dockerfile` และ `compose.yaml` ให้รันแอปได้บนทุกเครื่อง
    - ตรวจสอบ GitHub Actions CI ให้รัน `npm test` และ `npm run build` ผ่าน 100% ทุกครั้งที่มี Pull Request
-5. **รายงานการทดสอบ:**
-   - ควบคุมการรันเทสทั้งหมด 73 ข้อจากสมาชิกทั้ง 6 คนให้ผ่านครบถ้วนก่อนส่งงาน
+5. **หลังบ้าน API Route Handler (`src/app/api/analyze/route.ts`):**
+   - เขียน Endpoint รับคำขอ POST จากหน้าเว็บ Dashboard (คนที่ 4)
+   - สกัด JSON body (`url`, `token`) และตรวจสอบความถูกต้อง (ถ้าไม่มี URL ให้ส่งคืน HTTP 400 Bad Request)
+   - ส่งข้อมูลเข้า `runAnalysisPipeline` และส่งผลลัพธ์กลับในรูปแบบ JSON (HTTP 200) พร้อมครอบคลุม Error Handling (HTTP 500)
+6. **รายงานการทดสอบ:**
+   - ควบคุมการรันเทสทั้งหมด 74 ข้อจากสมาชิกทั้ง 6 คนให้ผ่านครบถ้วนก่อนส่งงาน
