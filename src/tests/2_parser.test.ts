@@ -43,6 +43,20 @@ describe('คนที่ 2: parser.ts (AST & Event Parser Engine)', () => {
       expect(filtered).toHaveLength(1);
       expect(filtered[0].path).toBe('src/app/page.tsx');
     });
+
+    it('ถ้ามีไฟล์โค้ดมากกว่า maxLimit ให้ตัดทอนเฉพาะ maxLimit ไฟล์แรกเพื่อความปลอดภัย', () => {
+      const items: GitHubTreeItem[] = Array.from({ length: 30 }, (_, i) => ({
+        path: `src/components/Card${i}.tsx`,
+        mode: '100644',
+        type: 'blob',
+        sha: `sha-${i}`
+      }));
+
+      const filtered = filterTreeFiles(items, 10);
+      expect(filtered).toHaveLength(10);
+      expect(filtered[0].path).toBe('src/components/Card0.tsx');
+      expect(filtered[9].path).toBe('src/components/Card9.tsx');
+    });
   });
 
   describe('detectNextFileType (จำแนกเลเยอร์สถาปัตยกรรม Next.js)', () => {
@@ -75,6 +89,13 @@ describe('คนที่ 2: parser.ts (AST & Event Parser Engine)', () => {
 
     it('ตรวจจับ components เป็น component', () => {
       expect(detectNextFileType('src/components/Header.tsx')).toBe('component');
+    });
+
+    it('ตรวจจับโปรเจกต์ที่ไม่มีโฟลเดอร์ src/ นำหน้าได้ (Root Folder)', () => {
+      expect(detectNextFileType('app/page.tsx')).toBe('page');
+      expect(detectNextFileType('app/dashboard/layout.tsx')).toBe('layout');
+      expect(detectNextFileType('components/Modal.tsx')).toBe('component');
+      expect(detectNextFileType('app/api/user/route.ts')).toBe('api');
     });
   });
 

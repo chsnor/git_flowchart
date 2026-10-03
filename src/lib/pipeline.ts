@@ -39,5 +39,7 @@ export async function runAnalysisPipeline(
   // TODO 6.8: สร้างโครงสร้าง Nodes/Edges สำหรับ React Flow และ Mermaid Syntax (คนที่ 3)
   // TODO 6.9: บันทึกผลลัพธ์ลง pipelineCache.set(githubUrl, result) เพื่อใช้ในครั้งต่อไป
   // TODO 6.10: ส่งคืน AnalysisResult ที่สมบูรณ์ พร้อมแนบ isCached: false และ executionTimeMs
+  // TODO 6.11 (Network Safety Guard): ครอบ try-catch หากยิง GitHub ไม่สำเร็จ (เช่น เน็ตหลุด หรือติด Rate Limit 403)
+  //            ให้โยน Error ที่มีข้อความชัดเจน เช่น "ไม่สามารถเชื่อมต่อ GitHub ได้ กรุณาตรวจสอบอินเทอร์เน็ตหรือแนบ Token"
   throw new Error('ยังไม่ได้เขียนฟังก์ชัน runAnalysisPipeline');
 }

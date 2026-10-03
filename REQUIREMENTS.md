@@ -28,7 +28,7 @@
 
 ## 👤 คนที่ 2: AST & Event Parser Engine
 **ไฟล์ที่รับผิดชอบ:** `src/lib/parser.ts`  
-**ไฟล์เทส:** `src/tests/2_parser.test.ts` (11 ข้อ)
+**ไฟล์เทส:** `src/tests/2_parser.test.ts` (13 ข้อ)
 
 ### ขอบเขตงาน (Requirements):
 1. **การคัดกรองขยะ (Function: `filterTreeFiles`):**
@@ -36,7 +36,9 @@
    - กรองโฟลเดอร์ขยะทิ้ง: `node_modules/`, `.next/`, `dist/`, `build/`, `public/`
    - กรองไฟล์ระบบทิ้ง: lockfiles, `.env*`, `.gitignore`, `tsconfig.json`, `README.md`
    - เก็บเฉพาะไฟล์โค้ดนามสกุล: `.ts`, `.tsx`, `.js`, `.jsx`
+   - **ระบบจำกัดจำนวน (Safety Cap):** ตัดทอนจำนวนไฟล์ไม่ให้เกิน `maxLimit = 150` เพื่อป้องกันเบราว์เซอร์ค้างหากเจอ Repo ขนาดมหึมา
 2. **การจำแนกประเภทไฟล์ Next.js (Function: `detectNextFileType`):**
+   - **โครงสร้างยืดหยุ่น:** รองรับทั้งโปรเจกต์ที่มี `src/` (เช่น `src/app/page.tsx`) และแบบไม่มี `src/` (เช่น `app/page.tsx`)
    - `middleware`: ไฟล์ `middleware.ts` หรือ `proxy.ts` (จุดคัดกรองความปลอดภัย)
    - `page`: ไฟล์ `page.tsx` หรือ `page.js` (หน้าจอแสดงผล)
    - `layout`: ไฟล์ `layout.tsx` (โครงหน้าเว็บ)
@@ -146,4 +148,4 @@
    - ดูแลคอนฟิก `Dockerfile` และ `compose.yaml` ให้รันแอปได้บนทุกเครื่อง
    - ตรวจสอบ GitHub Actions CI ให้รัน `npm test` และ `npm run build` ผ่าน 100% ทุกครั้งที่มี Pull Request
 5. **รายงานการทดสอบ:**
-   - ควบคุมการรันเทสทั้งหมด 71 ข้อจากสมาชิกทั้ง 6 คนให้ผ่านครบถ้วนก่อนส่งงาน
+   - ควบคุมการรันเทสทั้งหมด 73 ข้อจากสมาชิกทั้ง 6 คนให้ผ่านครบถ้วนก่อนส่งงาน
