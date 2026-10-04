@@ -105,7 +105,7 @@ export async function runAnalysisPipeline(
   // กรองไฟล์ที่ไม่เกี่ยวข้องทิ้ง (ใช้ฟังก์ชันคนที่ 2)
   let filteredItems: GitHubTreeItem[] = [];
   try {
-    filteredItems = filterTreeFiles(treeData);
+    filteredItems = filterTreeFiles(treeData, 500);
   } catch {
     // โค้ดสำรองระหว่างรอคนที่ 2: กรองเอาเฉพาะไฟล์ blob และนามสกุลโค้ด
     filteredItems = treeData.filter(
@@ -115,7 +115,7 @@ export async function runAnalysisPipeline(
         !item.path.includes(".next") &&
         !item.path.endsWith(".d.ts") &&
         /\.(tsx?|jsx?)$/.test(item.path),
-    );
+    ).slice(0, 500);
   }
   // TODO 6.6: จำแนกประเภทของแต่ละไฟล์ด้วย detectNextFileType (คนที่ 2)
   const filesWithTypes = filteredItems.map((item) => {

@@ -127,6 +127,7 @@ export function FlowCanvas({ nodes, edges, onSelectNode }: FlowCanvasProps) {
         fitViewOptions={{ padding: 0.2 }}
         minZoom={0.1}
         proOptions={{ hideAttribution: true }}
+        onlyRenderVisibleElements={true}
       >
         <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#1e293b" />
         <Controls />
