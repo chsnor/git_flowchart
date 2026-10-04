@@ -1,48 +1,54 @@
 // src/lib/parser.ts
 import { GitHubTreeItem, CodeRelation, NextFileType } from '../types';
 
+const BLACKLIST_FOLDERS = ['node_modules/', '.next/', 'dist/', 'build/', 'public/'];
+const BLACKLIST_FILES = new Set([
+  'package-lock.json',
+  'yarn.lock',
+  'pnpm-lock.yaml',
+  'bun.lockb',
+  'tsconfig.json',
+  'readme.md',
+  '.gitignore',
+]);
+const VALID_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx'];
+
 /**
- * ฟังก์ชันสำหรับคัดกรองเฉพาะไฟล์โค้ดสำคัญ และตัดไฟล์ที่ไม่เกี่ยวข้องทิ้ง
- * รองรับการจำกัดจำนวนไฟล์สูงสุด (maxLimit) เพื่อป้องกันไม่ให้เบราว์เซอร์ค้างหากเป็น Repo ขนาดใหญ่
+ * ฟังก์ชันสำหรับคัดกรองเฉพาะไฟล์โค้ดสำคัญ
+ * หยุดการวนลูปทันทีเมื่อได้ไฟล์ครบตาม maxLimit (Early Exit) เพื่อความรวดเร็วสูงสุด
  */
 export function filterTreeFiles(items: GitHubTreeItem[], maxLimit = 150): GitHubTreeItem[] {
-  const blacklistFolders = ['node_modules/', '.next/', 'dist/', 'build/', 'public/'];
-  const blacklistFiles = [
-    'package-lock.json',
-    'yarn.lock',
-    'pnpm-lock.yaml',
-    'bun.lockb',
-    'tsconfig.json',
-    'readme.md',
-    '.gitignore',
-  ];
+  const filtered: GitHubTreeItem[] = [];
 
-  const validExtensions = ['.ts', '.tsx', '.js', '.jsx'];
+  for (let i = 0; i < items.length; i++) {
+    if (filtered.length >= maxLimit) break;
 
-  const filtered = items.filter((item) => {
-    if (item.type !== 'blob') return false;
+    const item = items[i];
+    if (item.type !== 'blob') continue;
 
     const path = item.path.toLowerCase();
-    const fileName = path.split('/').pop() || '';
+    const lastSlash = path.lastIndexOf('/');
+    const fileName = lastSlash !== -1 ? path.slice(lastSlash + 1) : path;
 
-    if (blacklistFolders.some((folder) => path.includes(folder))) return false;
-    if (fileName.startsWith('.env')) return false;
-    if (blacklistFiles.includes(fileName)) return false;
+    if (fileName.startsWith('.env')) continue;
+    if (BLACKLIST_FILES.has(fileName)) continue;
+    if (BLACKLIST_FOLDERS.some((folder) => path.includes(folder))) continue;
 
-    return validExtensions.some((ext) => fileName.endsWith(ext));
-  });
+    if (VALID_EXTENSIONS.some((ext) => fileName.endsWith(ext))) {
+      filtered.push(item);
+    }
+  }
 
-  return filtered.slice(0, maxLimit);
+  return filtered;
 }
 
 /**
  * ฟังก์ชันจำแนกประเภทไฟล์ในสถาปัตยกรรม Next.js (App Router Architecture)
- * รองรับทั้งกรณีมีโฟลเดอร์ src/ (เช่น src/app/page.tsx) และไม่มี src/ (เช่น app/page.tsx)
  */
 export function detectNextFileType(filePath: string): NextFileType {
   const normalizedPath = filePath.replace(/\\/g, '/');
-  const pathParts = normalizedPath.split('/');
-  const fileName = pathParts[pathParts.length - 1];
+  const lastSlash = normalizedPath.lastIndexOf('/');
+  const fileName = lastSlash !== -1 ? normalizedPath.slice(lastSlash + 1) : normalizedPath;
 
   if (
     fileName === 'middleware.ts' ||
@@ -63,27 +69,35 @@ export function detectNextFileType(filePath: string): NextFileType {
 
   if (
     /^actions?\.(tsx|ts|jsx|js)$/.test(fileName) ||
-    pathParts.includes('actions')
+    normalizedPath.includes('/actions/') ||
+    normalizedPath.startsWith('actions/')
   ) {
     return 'action';
   }
 
   if (
-    pathParts.includes('stores') ||
-    pathParts.includes('context') ||
-    pathParts.includes('state')
+    normalizedPath.includes('/stores/') ||
+    normalizedPath.includes('/context/') ||
+    normalizedPath.includes('/state/') ||
+    normalizedPath.startsWith('stores/') ||
+    normalizedPath.startsWith('context/') ||
+    normalizedPath.startsWith('state/')
   ) {
     return 'store';
   }
 
   if (
     /^route\.(tsx|ts|jsx|js)$/.test(fileName) ||
-    pathParts.includes('api')
+    normalizedPath.includes('/api/') ||
+    normalizedPath.startsWith('api/')
   ) {
     return 'api';
   }
 
-  if (pathParts.includes('components')) {
+  if (
+    normalizedPath.includes('/components/') ||
+    normalizedPath.startsWith('components/')
+  ) {
     return 'component';
   }
 
@@ -94,20 +108,12 @@ export function detectNextFileType(filePath: string): NextFileType {
  * ฟังก์ชันสำหรับสกัดความสัมพันธ์การ import ไฟล์ภายในโปรเจกต์
  */
 export function extractImportsFromCode(sourcePath: string, codeContent: string): CodeRelation[] {
-  // ลบคอมเมนต์ทั้งหมด (ทั้ง /* ... */ และ //)
-  let cleanCode = codeContent.replace(/\/\*[\s\S]*?\*\//g, '');
-  cleanCode = cleanCode
-    .split('\n')
-    .map((line) => {
-      const idx = line.indexOf('//');
-      return idx !== -1 ? line.slice(0, idx) : line;
-    })
-    .join('\n');
+  // ลบคอมเมนต์ทั้งหมด (ทั้ง /* ... */ และ // ...) ในรอบเดียวด้วย Regex เพื่อประสิทธิภาพสูงสุด
+  const cleanCode = codeContent.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
 
   const relations: CodeRelation[] = [];
   const seenTargets = new Set<string>();
 
-  // Regex สกัด import (รองรับแบบ single-line, multi-line และ import type)
   const importRegex = /import(?:\s+type)?(?:\s+[\s\S]*?\s+from)?\s+['"]([^'"]+)['"]/g;
 
   let match: RegExpExecArray | null;
@@ -133,40 +139,33 @@ export function extractImportsFromCode(sourcePath: string, codeContent: string):
  * ฟังก์ชันสกัดการเรียกใช้ Event และ Server Action (เช่น onClick, form action)
  */
 export function extractActionTriggers(sourcePath: string, codeContent: string): CodeRelation[] {
-  // ลบคอมเมนต์ออกทั้งหมด
-  let cleanCode = codeContent.replace(/\/\*[\s\S]*?\*\//g, '');
-  cleanCode = cleanCode
-    .split('\n')
-    .map((line) => {
-      const idx = line.indexOf('//');
-      return idx !== -1 ? line.slice(0, idx) : line;
-    })
-    .join('\n');
+  // ลบคอมเมนต์ทั้งหมดในรอบเดียว
+  const cleanCode = codeContent.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
 
   const relations: CodeRelation[] = [];
   const seenKeys = new Set<string>();
 
-  const extractTargetFn = (expr: string): string | null => {
-    const reserved = new Set([
-      'async', 'await', 'return', 'function', 'true', 'false',
-      'null', 'undefined', 'e', 'event', 'evt', 'formData',
-      'console', 'log', 'preventDefault', 'stopPropagation', 'void'
-    ]);
+  const RESERVED = new Set([
+    'async', 'await', 'return', 'function', 'true', 'false',
+    'null', 'undefined', 'e', 'event', 'evt', 'formData',
+    'console', 'log', 'preventDefault', 'stopPropagation', 'void'
+  ]);
 
+  const extractTargetFn = (expr: string): string | null => {
     const tokens = expr
       .replace(/['"`]/g, '')
       .split(/[^a-zA-Z0-9_$]+/)
       .filter(Boolean);
 
     for (const token of tokens) {
-      if (!reserved.has(token) && !/^\d+$/.test(token)) {
+      if (!RESERVED.has(token) && !/^\d+$/.test(token)) {
         return token;
       }
     }
     return null;
   };
 
-  // 1. ตรวจจับ onClick={...} -> type: 'event', label: 'onClick'
+  // 1. ตรวจจับ onClick={...}
   const onClickRegex = /onClick=\{([^}]+)\}/g;
   let match: RegExpExecArray | null;
 
@@ -186,7 +185,7 @@ export function extractActionTriggers(sourcePath: string, codeContent: string): 
     }
   }
 
-  // 2. ตรวจจับ form action={...} -> type: 'action', label: 'form action'
+  // 2. ตรวจจับ form action={...} / action={...}
   const actionRegex = /(?:form\s+)?action=\{([^}]+)\}/g;
 
   while ((match = actionRegex.exec(cleanCode)) !== null) {
