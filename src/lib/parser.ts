@@ -1,53 +1,287 @@
 // src/lib/parser.ts
 import { GitHubTreeItem, CodeRelation, NextFileType } from '../types';
 
+const BLACKLIST_FOLDERS = [
+  'node_modules/',
+  '.next/',
+  'dist/',
+  'build/',
+  'public/',
+  '.git/',
+  '.github/',
+  'coverage/',
+  '__tests__/',
+  'tests/',
+  'test/',
+  'docs/',
+  'scripts/',
+  'config/',
+  'configs/',
+  'cypress/',
+  'e2e/',
+];
+
+const BLACKLIST_FILES = new Set([
+  'package-lock.json',
+  'yarn.lock',
+  'pnpm-lock.yaml',
+  'bun.lockb',
+  'tsconfig.json',
+  'jsconfig.json',
+  'readme.md',
+  '.gitignore',
+  'package.json',
+  'next.config.js',
+  'next.config.mjs',
+  'next.config.ts',
+  'tailwind.config.js',
+  'tailwind.config.ts',
+  'postcss.config.js',
+  'postcss.config.mjs',
+  'vite.config.ts',
+  'vite.config.js',
+  'vitest.config.ts',
+  'vitest.config.js',
+  'jest.config.js',
+  'jest.config.ts',
+]);
+
+const ALLOWED_ROOT_FILES = new Set([
+  'middleware.ts',
+  'middleware.js',
+  'proxy.ts',
+  'proxy.js',
+]);
+
+const VALID_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx'];
+
 /**
- * ฟังก์ชันสำหรับคัดกรองเฉพาะไฟล์โค้ดสำคัญ และตัดไฟล์ที่ไม่เกี่ยวข้องทิ้ง
- * รองรับการจำกัดจำนวนไฟล์สูงสุด (maxLimit) เพื่อป้องกันไม่ให้เบราว์เซอร์ค้างหากเป็น Repo ขนาดใหญ่
+ * คัดกรองเฉพาะไฟล์ซอร์สโค้ดจริง
+ * กรองไฟล์ Config ระดับ Root, โฟลเดอร์ทดสอบ, และไฟล์ที่ไม่ใช่ส่วนหนึ่งของแอปพลิเคชันออกทั้งหมด
  */
-export function filterTreeFiles(items: GitHubTreeItem[], maxLimit = 150): GitHubTreeItem[] {
-  // TODO 2.1: กำหนดรายการ Blacklist ที่ต้องคัดทิ้ง (node_modules, .next, dist, build, public, lockfiles, configs)
-  // TODO 2.2: กำหนดรายการ Whitelist นามสกุลไฟล์ที่ต้องการเก็บไว้ (.ts, .tsx, .js, .jsx)
-  // TODO 2.3: คัดเฉพาะไฟล์ที่เป็นประเภท blob และไม่ตรงกับ Blacklist
-  // TODO 2.4 (Safety Guard): หากจำนวนไฟล์ที่กรองได้เกิน maxLimit ให้ตัดทอนด้วย .slice(0, maxLimit)
-  throw new Error('ยังไม่ได้เขียนฟังก์ชัน filterTreeFiles');
+export function filterTreeFiles(items: GitHubTreeItem[], maxLimit = 250): GitHubTreeItem[] {
+  if (!Array.isArray(items)) return [];
+
+  const filtered: GitHubTreeItem[] = [];
+
+  for (let i = 0; i < items.length; i++) {
+    if (filtered.length >= maxLimit) break;
+
+    const item = items[i];
+    if (!item || item.type !== 'blob' || !item.path) continue;
+
+    const rawPath = item.path.replace(/\\/g, '/');
+    const lowerPath = rawPath.toLowerCase();
+    const lastSlash = lowerPath.lastIndexOf('/');
+    const fileName = lastSlash !== -1 ? lowerPath.slice(lastSlash + 1) : lowerPath;
+
+    // 1. ข้ามไฟล์ซ่อน (เช่น .env, .gitignore)
+    if (fileName.startsWith('.')) continue;
+
+    // 2. ข้ามไฟล์ที่อยู่ใน Blacklist
+    if (BLACKLIST_FILES.has(fileName)) continue;
+
+    // 3. ข้ามโฟลเดอร์ที่ไม่เกี่ยวข้อง
+    if (BLACKLIST_FOLDERS.some((folder) => lowerPath.includes(folder))) continue;
+
+    // 4. ข้ามไฟล์ declaration (.d.ts), config (*.config.*), test (*.test.*, *.spec.*), minified (.min.*)
+    if (
+      fileName.endsWith('.d.ts') ||
+      fileName.includes('.config.') ||
+      fileName.includes('.test.') ||
+      fileName.includes('.spec.') ||
+      fileName.includes('.cy.') ||
+      fileName.includes('.min.')
+    ) {
+      continue;
+    }
+
+    // 5. ตรวจสอบนามสกุลไฟล์ซอร์สโค้ด (.ts, .tsx, .js, .jsx)
+    if (!VALID_EXTENSIONS.some((ext) => fileName.endsWith(ext))) {
+      continue;
+    }
+
+    // 6. กรองไฟล์ระดับ Root (กรณีไม่มี / ใน Path) ยกเว้น middleware และ proxy
+    const isRootFile = lastSlash === -1;
+    if (isRootFile && !ALLOWED_ROOT_FILES.has(fileName)) {
+      continue;
+    }
+
+    filtered.push(item);
+  }
+
+  return filtered;
 }
 
 /**
- * ฟังก์ชันจำแนกประเภทไฟล์ในสถาปัตยกรรม Next.js (App Router Architecture)
- * รองรับทั้งกรณีมีโฟลเดอร์ src/ (เช่น src/app/page.tsx) และไม่มี src/ (เช่น app/page.tsx)
- * - 'middleware': middleware.ts หรือ proxy.ts (คัดกรองความปลอดภัย)
- * - 'page': page.tsx (หน้าจอแสดงผล)
- * - 'layout': layout.tsx (โครงหน้าเว็บ)
- * - 'action': actions.ts หรือไฟล์ในโฟลเดอร์ actions/ (Server Action)
- * - 'store': ไฟล์ในโฟลเดอร์ stores/, context/ หรือ state
- * - 'api': route.ts หรือไฟล์ใน api/
- * - 'component': ไฟล์ใน components/
- * - 'other': ไฟล์อื่นๆ เช่น lib/ หรือ utils/
+ * จำแนกประเภทของไฟล์ตามสถาปัตยกรรม Next.js
  */
 export function detectNextFileType(filePath: string): NextFileType {
-  // TODO 2.5: ตรวจสอบ path ของไฟล์ (รองรับทั้งแบบมี 'src/' นำหน้า และแบบวางที่ root เช่น 'app/page.tsx')
-  // TODO 2.6: ส่งคืน NextFileType ตามประเภทโฟลเดอร์หรือชื่อไฟล์
-  throw new Error('ยังไม่ได้เขียนฟังก์ชัน detectNextFileType');
+  if (!filePath || typeof filePath !== 'string') return 'other';
+
+  const normalizedPath = filePath.replace(/\\/g, '/');
+  const lastSlash = normalizedPath.lastIndexOf('/');
+  const fileName = lastSlash !== -1 ? normalizedPath.slice(lastSlash + 1) : normalizedPath;
+
+  if (
+    fileName === 'middleware.ts' ||
+    fileName === 'middleware.js' ||
+    fileName === 'proxy.ts' ||
+    fileName === 'proxy.js'
+  ) {
+    return 'middleware';
+  }
+
+  if (/^page\.(tsx|ts|jsx|js)$/.test(fileName)) return 'page';
+  if (/^layout\.(tsx|ts|jsx|js)$/.test(fileName)) return 'layout';
+
+  if (
+    /^actions?\.(tsx|ts|jsx|js)$/.test(fileName) ||
+    normalizedPath.includes('/actions/') ||
+    normalizedPath.startsWith('actions/')
+  ) {
+    return 'action';
+  }
+
+  if (
+    normalizedPath.includes('/stores/') ||
+    normalizedPath.includes('/context/') ||
+    normalizedPath.includes('/state/') ||
+    normalizedPath.startsWith('stores/') ||
+    normalizedPath.startsWith('context/') ||
+    normalizedPath.startsWith('state/')
+  ) {
+    return 'store';
+  }
+
+  if (
+    /^route\.(tsx|ts|jsx|js)$/.test(fileName) ||
+    normalizedPath.includes('/api/') ||
+    normalizedPath.startsWith('api/')
+  ) {
+    return 'api';
+  }
+
+  if (
+    normalizedPath.includes('/components/') ||
+    normalizedPath.startsWith('components/')
+  ) {
+    return 'component';
+  }
+
+  return 'other';
 }
 
 /**
- * ฟังก์ชันสำหรับสกัดความสัมพันธ์การ import ไฟล์ภายในโปรเจกต์
+ * ดึงข้อมูลการ import โดยข้ามไฟล์ที่ไม่มีคำว่า import ด้วย String Guard Clause
  */
 export function extractImportsFromCode(sourcePath: string, codeContent: string): CodeRelation[] {
-  // TODO 2.7: จัดการกรองบรรทัดที่ถูกคอมเมนต์ทิ้ง (Comment Stripping)
-  // TODO 2.8: สร้าง Regular Expression สกัดคำสั่ง import (ทั้งบรรทัดเดียวและหลายบรรทัด)
-  // TODO 2.9: คัดกรองเฉพาะ Local / Alias Imports (ขึ้นต้นด้วย ./, ../, @/, ~/)
-  // TODO 2.10: ตัดความสัมพันธ์ซ้ำซ้อน (Deduplication)
-  throw new Error('ยังไม่ได้เขียนฟังก์ชัน extractImportsFromCode');
+  if (!codeContent || typeof codeContent !== 'string' || !codeContent.includes('import')) {
+    return [];
+  }
+
+  const cleanCode = codeContent.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
+  const relations: CodeRelation[] = [];
+  const seenTargets = new Set<string>();
+
+  const importRegex = /import(?:\s+type)?(?:\s+[\s\S]*?\s+from)?\s+['"]([^'"]+)['"]/g;
+
+  let match: RegExpExecArray | null;
+  while ((match = importRegex.exec(cleanCode)) !== null) {
+    const importPath = match[1];
+
+    if (importPath && /^(\.|\.\.|\@|\~)\//.test(importPath)) {
+      if (!seenTargets.has(importPath)) {
+        seenTargets.add(importPath);
+        relations.push({
+          source: sourcePath,
+          target: importPath,
+          type: 'import',
+        });
+      }
+    }
+  }
+
+  return relations;
 }
 
 /**
- * ฟังก์ชันสกัดการเรียกใช้ Event และ Server Action (เช่น onClick, form action)
- * เพื่อลากเส้นความสัมพันธ์ที่มี Label แสดงการกระทำของผู้ใช้
+ * ดึงข้อมูล Event Triggers (onClick) และ Server Actions (action)
  */
 export function extractActionTriggers(sourcePath: string, codeContent: string): CodeRelation[] {
-  // TODO 2.11: ค้นหาแพทเทิร์น onClick={handler} หรือ form action={actionHandler} ในโค้ด JSX/TSX
-  // TODO 2.12: สกัดชื่อฟังก์ชันปลายทาง และสร้าง CodeRelation พร้อม label เช่น "onClick", "form action"
-  throw new Error('ยังไม่ได้เขียนฟังก์ชัน extractActionTriggers');
+  if (
+    !codeContent ||
+    typeof codeContent !== 'string' ||
+    (!codeContent.includes('onClick') && !codeContent.includes('action'))
+  ) {
+    return [];
+  }
+
+  const cleanCode = codeContent.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
+  const relations: CodeRelation[] = [];
+  const seenKeys = new Set<string>();
+
+  const RESERVED = new Set([
+    'async', 'await', 'return', 'function', 'true', 'false',
+    'null', 'undefined', 'e', 'event', 'evt', 'formData',
+    'console', 'log', 'preventDefault', 'stopPropagation', 'void'
+  ]);
+
+  const extractTargetFn = (expr: string): string | null => {
+    const tokens = expr
+      .replace(/['"`]/g, '')
+      .split(/[^a-zA-Z0-9_$]+/)
+      .filter(Boolean);
+
+    for (const token of tokens) {
+      if (!RESERVED.has(token) && !/^\d+$/.test(token)) {
+        return token;
+      }
+    }
+    return null;
+  };
+
+  if (cleanCode.includes('onClick')) {
+    const onClickRegex = /onClick=\{([^}]+)\}/g;
+    let match: RegExpExecArray | null;
+
+    while ((match = onClickRegex.exec(cleanCode)) !== null) {
+      const targetFn = extractTargetFn(match[1]);
+      if (targetFn) {
+        const key = `${sourcePath}->${targetFn}:onClick`;
+        if (!seenKeys.has(key)) {
+          seenKeys.add(key);
+          relations.push({
+            source: sourcePath,
+            target: targetFn,
+            type: 'event',
+            label: 'onClick',
+          });
+        }
+      }
+    }
+  }
+
+  if (cleanCode.includes('action')) {
+    const actionRegex = /(?:form\s+)?action=\{([^}]+)\}/g;
+    let match: RegExpExecArray | null;
+
+    while ((match = actionRegex.exec(cleanCode)) !== null) {
+      const targetFn = extractTargetFn(match[1]);
+      if (targetFn) {
+        const key = `${sourcePath}->${targetFn}:form action`;
+        if (!seenKeys.has(key)) {
+          seenKeys.add(key);
+          relations.push({
+            source: sourcePath,
+            target: targetFn,
+            type: 'action',
+            label: 'form action',
+          });
+        }
+      }
+    }
+  }
+
+  return relations;
 }
