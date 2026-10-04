@@ -12,7 +12,7 @@ export interface SideDrawerProps {
   githubRawUrl?: string;
 }
 
-export default function SideDrawer({
+export function SideDrawer({
   isOpen,
   onClose,
   filePath = '',
@@ -92,3 +92,6 @@ export default function SideDrawer({
     </div>
   );
 }
+
+// รองรับทั้งแบบ Named Export และ Default Export
+export default SideDrawer;
