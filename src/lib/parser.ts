@@ -59,7 +59,7 @@ const VALID_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx'];
  * คัดกรองเฉพาะไฟล์ซอร์สโค้ดจริง
  * กรองไฟล์ Config ระดับ Root, โฟลเดอร์ทดสอบ, และไฟล์ที่ไม่ใช่ส่วนหนึ่งของแอปพลิเคชันออกทั้งหมด
  */
-export function filterTreeFiles(items: GitHubTreeItem[], maxLimit = 150): GitHubTreeItem[] {
+export function filterTreeFiles(items: GitHubTreeItem[], maxLimit = 250): GitHubTreeItem[] {
   if (!Array.isArray(items)) return [];
 
   const filtered: GitHubTreeItem[] = [];
