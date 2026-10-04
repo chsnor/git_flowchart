@@ -1,76 +1,97 @@
 'use client';
 
-import React from 'react';
-import { NextFileType } from '../types';
+import React, { useState, useMemo } from 'react';
+import { getLanguageFromPath, formatCodeSnippet, highlightCodeWithPrism } from '@/lib/code-viewer';
 
 export interface SideDrawerProps {
   isOpen: boolean;
-  filePath: string | null;
-  fileContent: string | null;
-  fileType: NextFileType | null;
-  githubRawUrl?: string | null;
   onClose: () => void;
+  filePath?: string;
+  fileType?: string;
+  rawCode?: string;
+  githubRawUrl?: string;
 }
 
-/**
- * คอมโพเนนต์แถบ Side Inspector ด้านข้าง (คนที่ 5 รับผิดชอบ)
- * จะเลื่อนออกมาจากขอบขวาเมื่อผู้ใช้คลิกเลือก Node ในผืนผ้าใบ React Flow
- */
 export function SideDrawer({
   isOpen,
-  filePath,
-  fileContent,
-  fileType,
-  githubRawUrl,
   onClose,
+  filePath = '',
+  fileType = 'other',
+  rawCode = '',
+  githubRawUrl = '',
 }: SideDrawerProps) {
-  // =========================================================================
-  // พื้นที่ทำงานของ คนที่ 5: Side Inspector & Code Viewer
-  // =========================================================================
+  const [copied, setCopied] = useState(false);
 
-  // TODO 5.6: จัดการสถานะการคัดลอกโค้ด (Copied State สำหรับแสดง feedback เมื่อผู้ใช้กดปุ่ม)
+  const { formattedCode, totalLines, isTruncated, language, highlightedHtml } = useMemo(() => {
+    const lang = getLanguageFromPath(filePath);
+    const snippet = formatCodeSnippet(rawCode, 300);
+    return {
+      formattedCode: snippet.code,
+      totalLines: snippet.totalLines,
+      isTruncated: snippet.isTruncated,
+      language: lang,
+      highlightedHtml: highlightCodeWithPrism(snippet.code, lang),
+    };
+  }, [filePath, rawCode]);
 
-  // TODO 5.7: นำฟังก์ชันจาก lib/code-viewer.ts มาประมวลผลโค้ด:
-  // 1. หาภาษาด้วย getLanguageFromPath(filePath)
-  // 2. ตัดทอนและนับบรรทัดด้วย formatCodeSnippet(fileContent)
-  // 3. แปลงเป็นข้อความสีด้วย highlightCodeWithPrism(snippet, lang)
+  const handleCopy = async () => {
+    if (!rawCode) return;
+    try {
+      await navigator.clipboard.writeText(rawCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {}
+  };
 
-  // TODO 5.8: ดึงชุดสีของโหนดด้วย getNodeColorConfig(fileType) จาก lib/generator.ts มาใส่เป็นขอบ Tag
-
-  // TODO 5.9: ทำฟังก์ชันคัดลอกโค้ดลง Clipboard ด้วย navigator.clipboard.writeText
-
-  if (!isOpen || !filePath) return null;
+  if (!isOpen) return null;
 
   return (
-    <aside
-      aria-label="Side Inspector"
-      className="fixed inset-y-0 right-0 z-50 w-full sm:w-[480px] bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col p-6 space-y-4"
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Code Inspector Drawer"
+      className="fixed inset-y-0 right-0 z-50 flex w-full max-w-2xl flex-col bg-slate-900 border-l border-slate-700 text-slate-100 shadow-2xl"
     >
-      <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-        <h2 className="text-sm font-semibold text-slate-200">
-          [Side Inspector - พื้นที่ทำงาน คนที่ 5]
-        </h2>
-        <button
-          onClick={onClose}
-          className="text-slate-400 hover:text-white px-2 py-1 rounded bg-slate-800 text-xs"
-        >
-          ✕ ปิด
-        </button>
+      <div className="flex items-center justify-between border-b border-slate-800 px-6 py-4">
+        <div className="flex flex-col gap-1 overflow-hidden">
+          <div className="flex items-center gap-2">
+            <span data-testid="file-type-badge" className="rounded px-2 py-0.5 text-xs font-semibold uppercase bg-sky-500/20 text-sky-400 border border-sky-500/30">
+              {fileType}
+            </span>
+            <span className="text-xs text-slate-400">({language})</span>
+          </div>
+          <h2 title={filePath} className="truncate text-sm font-mono text-slate-200">
+            {filePath || 'No file selected'}
+          </h2>
+        </div>
+        <button onClick={onClose} aria-label="Close drawer" className="p-2 text-slate-400 hover:text-white">✕</button>
       </div>
 
-      <div className="flex-1 border border-dashed border-slate-800 rounded-xl p-4 flex flex-col items-center justify-center text-center text-slate-500 text-xs space-y-2">
-        <p className="text-slate-300 font-mono font-medium">{filePath}</p>
-        <p>TODO 5.10: เรนเดอร์กล่องแสดงโค้ดพร้อม Syntax Highlighting จาก PrismJS ตรงนี้</p>
+      <div className="flex items-center justify-between border-b border-slate-800/80 bg-slate-950/40 px-6 py-2 text-xs text-slate-400">
+        <div>
+          <span>{totalLines} lines</span>
+          {isTruncated && <span className="ml-2 text-amber-400">(Truncated to first 300 lines)</span>}
+        </div>
+        <div className="flex items-center gap-2">
+          {githubRawUrl && (
+            <a href={githubRawUrl} target="_blank" rel="noopener noreferrer" className="rounded bg-slate-800 px-2.5 py-1 text-slate-300">
+              Open on GitHub ↗
+            </a>
+          )}
+          <button onClick={handleCopy} className="rounded bg-slate-800 px-2.5 py-1 text-slate-300">
+            {copied ? '✓ Copied' : 'Copy Code'}
+          </button>
+        </div>
       </div>
 
-      <div className="flex items-center justify-between pt-2 border-t border-slate-800">
-        <span className="text-xs text-slate-500">
-          {githubRawUrl ? 'TODO: ทำปุ่มเปิด GitHub' : ''}
-        </span>
-        <span className="text-xs text-slate-500">
-          TODO: ทำปุ่ม Copy Code
-        </span>
+      <div className="relative flex-1 overflow-auto p-6 font-mono text-sm bg-slate-950">
+        <pre className="m-0 overflow-x-auto">
+          <code className={`language-${language}`} dangerouslySetInnerHTML={{ __html: highlightedHtml || formattedCode }} />
+        </pre>
       </div>
-    </aside>
+    </div>
   );
 }
+
+// รองรับทั้งแบบ Named Export และ Default Export
+export default SideDrawer;
