@@ -6,48 +6,204 @@ import { GitHubTreeItem, CodeRelation, NextFileType } from '../types';
  * รองรับการจำกัดจำนวนไฟล์สูงสุด (maxLimit) เพื่อป้องกันไม่ให้เบราว์เซอร์ค้างหากเป็น Repo ขนาดใหญ่
  */
 export function filterTreeFiles(items: GitHubTreeItem[], maxLimit = 150): GitHubTreeItem[] {
-  // TODO 2.1: กำหนดรายการ Blacklist ที่ต้องคัดทิ้ง (node_modules, .next, dist, build, public, lockfiles, configs)
-  // TODO 2.2: กำหนดรายการ Whitelist นามสกุลไฟล์ที่ต้องการเก็บไว้ (.ts, .tsx, .js, .jsx)
-  // TODO 2.3: คัดเฉพาะไฟล์ที่เป็นประเภท blob และไม่ตรงกับ Blacklist
-  // TODO 2.4 (Safety Guard): หากจำนวนไฟล์ที่กรองได้เกิน maxLimit ให้ตัดทอนด้วย .slice(0, maxLimit)
-  throw new Error('ยังไม่ได้เขียนฟังก์ชัน filterTreeFiles');
+  const blacklistFolders = ['node_modules/', '.next/', 'dist/', 'build/', 'public/'];
+  const blacklistFiles = [
+    'package-lock.json',
+    'yarn.lock',
+    'pnpm-lock.yaml',
+    'bun.lockb',
+    'tsconfig.json',
+    'readme.md',
+    '.gitignore',
+  ];
+
+  const validExtensions = ['.ts', '.tsx', '.js', '.jsx'];
+
+  const filtered = items.filter((item) => {
+    if (item.type !== 'blob') return false;
+
+    const path = item.path.toLowerCase();
+    const fileName = path.split('/').pop() || '';
+
+    if (blacklistFolders.some((folder) => path.includes(folder))) return false;
+    if (fileName.startsWith('.env')) return false;
+    if (blacklistFiles.includes(fileName)) return false;
+
+    return validExtensions.some((ext) => fileName.endsWith(ext));
+  });
+
+  return filtered.slice(0, maxLimit);
 }
 
 /**
  * ฟังก์ชันจำแนกประเภทไฟล์ในสถาปัตยกรรม Next.js (App Router Architecture)
  * รองรับทั้งกรณีมีโฟลเดอร์ src/ (เช่น src/app/page.tsx) และไม่มี src/ (เช่น app/page.tsx)
- * - 'middleware': middleware.ts หรือ proxy.ts (คัดกรองความปลอดภัย)
- * - 'page': page.tsx (หน้าจอแสดงผล)
- * - 'layout': layout.tsx (โครงหน้าเว็บ)
- * - 'action': actions.ts หรือไฟล์ในโฟลเดอร์ actions/ (Server Action)
- * - 'store': ไฟล์ในโฟลเดอร์ stores/, context/ หรือ state
- * - 'api': route.ts หรือไฟล์ใน api/
- * - 'component': ไฟล์ใน components/
- * - 'other': ไฟล์อื่นๆ เช่น lib/ หรือ utils/
  */
 export function detectNextFileType(filePath: string): NextFileType {
-  // TODO 2.5: ตรวจสอบ path ของไฟล์ (รองรับทั้งแบบมี 'src/' นำหน้า และแบบวางที่ root เช่น 'app/page.tsx')
-  // TODO 2.6: ส่งคืน NextFileType ตามประเภทโฟลเดอร์หรือชื่อไฟล์
-  throw new Error('ยังไม่ได้เขียนฟังก์ชัน detectNextFileType');
+  const normalizedPath = filePath.replace(/\\/g, '/');
+  const pathParts = normalizedPath.split('/');
+  const fileName = pathParts[pathParts.length - 1];
+
+  if (
+    fileName === 'middleware.ts' ||
+    fileName === 'middleware.js' ||
+    fileName === 'proxy.ts' ||
+    fileName === 'proxy.js'
+  ) {
+    return 'middleware';
+  }
+
+  if (/^page\.(tsx|ts|jsx|js)$/.test(fileName)) {
+    return 'page';
+  }
+
+  if (/^layout\.(tsx|ts|jsx|js)$/.test(fileName)) {
+    return 'layout';
+  }
+
+  if (
+    /^actions?\.(tsx|ts|jsx|js)$/.test(fileName) ||
+    pathParts.includes('actions')
+  ) {
+    return 'action';
+  }
+
+  if (
+    pathParts.includes('stores') ||
+    pathParts.includes('context') ||
+    pathParts.includes('state')
+  ) {
+    return 'store';
+  }
+
+  if (
+    /^route\.(tsx|ts|jsx|js)$/.test(fileName) ||
+    pathParts.includes('api')
+  ) {
+    return 'api';
+  }
+
+  if (pathParts.includes('components')) {
+    return 'component';
+  }
+
+  return 'other';
 }
 
 /**
  * ฟังก์ชันสำหรับสกัดความสัมพันธ์การ import ไฟล์ภายในโปรเจกต์
  */
 export function extractImportsFromCode(sourcePath: string, codeContent: string): CodeRelation[] {
-  // TODO 2.7: จัดการกรองบรรทัดที่ถูกคอมเมนต์ทิ้ง (Comment Stripping)
-  // TODO 2.8: สร้าง Regular Expression สกัดคำสั่ง import (ทั้งบรรทัดเดียวและหลายบรรทัด)
-  // TODO 2.9: คัดกรองเฉพาะ Local / Alias Imports (ขึ้นต้นด้วย ./, ../, @/, ~/)
-  // TODO 2.10: ตัดความสัมพันธ์ซ้ำซ้อน (Deduplication)
-  throw new Error('ยังไม่ได้เขียนฟังก์ชัน extractImportsFromCode');
+  // ลบคอมเมนต์ทั้งหมด (ทั้ง /* ... */ และ //)
+  let cleanCode = codeContent.replace(/\/\*[\s\S]*?\*\//g, '');
+  cleanCode = cleanCode
+    .split('\n')
+    .map((line) => {
+      const idx = line.indexOf('//');
+      return idx !== -1 ? line.slice(0, idx) : line;
+    })
+    .join('\n');
+
+  const relations: CodeRelation[] = [];
+  const seenTargets = new Set<string>();
+
+  // Regex สกัด import (รองรับแบบ single-line, multi-line และ import type)
+  const importRegex = /import(?:\s+type)?(?:\s+[\s\S]*?\s+from)?\s+['"]([^'"]+)['"]/g;
+
+  let match: RegExpExecArray | null;
+  while ((match = importRegex.exec(cleanCode)) !== null) {
+    const importPath = match[1];
+
+    if (importPath && /^(\.|\.\.|\@|\~)\//.test(importPath)) {
+      if (!seenTargets.has(importPath)) {
+        seenTargets.add(importPath);
+        relations.push({
+          source: sourcePath,
+          target: importPath,
+          type: 'import',
+        });
+      }
+    }
+  }
+
+  return relations;
 }
 
 /**
  * ฟังก์ชันสกัดการเรียกใช้ Event และ Server Action (เช่น onClick, form action)
- * เพื่อลากเส้นความสัมพันธ์ที่มี Label แสดงการกระทำของผู้ใช้
  */
 export function extractActionTriggers(sourcePath: string, codeContent: string): CodeRelation[] {
-  // TODO 2.11: ค้นหาแพทเทิร์น onClick={handler} หรือ form action={actionHandler} ในโค้ด JSX/TSX
-  // TODO 2.12: สกัดชื่อฟังก์ชันปลายทาง และสร้าง CodeRelation พร้อม label เช่น "onClick", "form action"
-  throw new Error('ยังไม่ได้เขียนฟังก์ชัน extractActionTriggers');
+  // ลบคอมเมนต์ออกทั้งหมด
+  let cleanCode = codeContent.replace(/\/\*[\s\S]*?\*\//g, '');
+  cleanCode = cleanCode
+    .split('\n')
+    .map((line) => {
+      const idx = line.indexOf('//');
+      return idx !== -1 ? line.slice(0, idx) : line;
+    })
+    .join('\n');
+
+  const relations: CodeRelation[] = [];
+  const seenKeys = new Set<string>();
+
+  const extractTargetFn = (expr: string): string | null => {
+    const reserved = new Set([
+      'async', 'await', 'return', 'function', 'true', 'false',
+      'null', 'undefined', 'e', 'event', 'evt', 'formData',
+      'console', 'log', 'preventDefault', 'stopPropagation', 'void'
+    ]);
+
+    const tokens = expr
+      .replace(/['"`]/g, '')
+      .split(/[^a-zA-Z0-9_$]+/)
+      .filter(Boolean);
+
+    for (const token of tokens) {
+      if (!reserved.has(token) && !/^\d+$/.test(token)) {
+        return token;
+      }
+    }
+    return null;
+  };
+
+  // 1. ตรวจจับ onClick={...} -> type: 'event', label: 'onClick'
+  const onClickRegex = /onClick=\{([^}]+)\}/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = onClickRegex.exec(cleanCode)) !== null) {
+    const targetFn = extractTargetFn(match[1]);
+    if (targetFn) {
+      const key = `${sourcePath}->${targetFn}:onClick`;
+      if (!seenKeys.has(key)) {
+        seenKeys.add(key);
+        relations.push({
+          source: sourcePath,
+          target: targetFn,
+          type: 'event',
+          label: 'onClick',
+        });
+      }
+    }
+  }
+
+  // 2. ตรวจจับ form action={...} -> type: 'action', label: 'form action'
+  const actionRegex = /(?:form\s+)?action=\{([^}]+)\}/g;
+
+  while ((match = actionRegex.exec(cleanCode)) !== null) {
+    const targetFn = extractTargetFn(match[1]);
+    if (targetFn) {
+      const key = `${sourcePath}->${targetFn}:form action`;
+      if (!seenKeys.has(key)) {
+        seenKeys.add(key);
+        relations.push({
+          source: sourcePath,
+          target: targetFn,
+          type: 'action',
+          label: 'form action',
+        });
+      }
+    }
+  }
+
+  return relations;
 }
