@@ -1,6 +1,6 @@
 'use client';
 
-import React, { startTransition, useState, useEffect, useEffectEvent } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AnalysisResult, NextFileType, SideDrawerState } from '../types';
 import { FlowCanvas } from '../components/FlowCanvas';
 import { SideDrawer } from '../components/SideDrawer';
@@ -34,70 +34,6 @@ export default function HomePage() {
     githubRawUrl: null,
   });
 
-  // ฟังก์ชันกลางสำหรับการยิง API วิเคราะห์ข้อมูล
-  const executeAnalysis = async (targetUrl: string, githubToken?: string, activeFilePath?: string | null) => {
-    const validation = validateUrlInput(targetUrl);
-    if (!validation.isValid) {
-      setErrorMessage(validation.errorMessage || 'URL ไม่ถูกต้อง');
-      return;
-    }
-
-    const cleanUrl = targetUrl.trim();
-    setErrorMessage(null);
-    setLoading(true);
-
-    try {
-      const response = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: cleanUrl, token: githubToken }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'ไม่สามารถวิเคราะห์ข้อมูลจาก GitHub ได้');
-      }
-
-      const data: AnalysisResult = await response.json();
-      setResult(data);
-
-      // ถ้ามี activeFilePath จากการแชร์ ให้เปิด SideDrawer ดึงโค้ดอัตโนมัติ
-      if (activeFilePath) {
-        const parsed = parseGitHubUrl(cleanUrl);
-        if (parsed) {
-          handleSelectNode(activeFilePath, 'other', parsed.owner, parsed.repo, parsed.branch);
-        }
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ';
-      setErrorMessage(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const restoreSharedState = useEffectEvent((stateParam: string) => {
-    const decoded = decodeShareableState(stateParam);
-    if (decoded?.url) {
-      startTransition(() => setUrl(decoded.url));
-      void executeAnalysis(decoded.url, '', decoded.activeNode);
-    }
-  });
-
-  // โหลด state จาก Query Parameter (?state=...) เมื่อโหลดหน้าเว็บครั้งแรก
-  useEffect(() => {
-    const stateParam = new URLSearchParams(window.location.search).get('state');
-    if (stateParam) {
-      startTransition(() => restoreSharedState(stateParam));
-    }
-  }, []);
-
-  // TODO 4.12: ฟังก์ชัน handleSubmit(e: React.FormEvent)
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    executeAnalysis(url, token);
-  };
-
   // TODO 4.13: ฟังก์ชัน handleSelectNode(filePath: string, fileType: NextFileType)
   async function handleSelectNode(
     filePath: string, 
@@ -111,6 +47,11 @@ export default function HomePage() {
     const owner = overrideOwner || parsed?.owner || '';
     const repo = overrideRepo || parsed?.repo || '';
     const branch = overrideBranch || parsed?.branch || 'main';
+
+    if (!owner || !repo) {
+      setErrorMessage('ไม่พบข้อมูล Repository หรือ Owner สำหรับดึงโค้ด');
+      return;
+    }
 
     const rawUrl = buildGitHubRawUrl(owner, repo, branch, filePath);
 
@@ -148,9 +89,70 @@ export default function HomePage() {
     }
   }
 
+  // ฟังก์ชันกลางสำหรับการยิง API วิเคราะห์ข้อมูล
+  const executeAnalysis = async (targetUrl: string, githubToken?: string, activeFilePath?: string | null) => {
+    const validation = validateUrlInput(targetUrl);
+    if (!validation.isValid) {
+      setErrorMessage(validation.errorMessage || 'URL ไม่ถูกต้อง');
+      return;
+    }
+
+    const cleanUrl = targetUrl.trim();
+    setErrorMessage(null);
+    setLoading(true);
+
+    try {
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: cleanUrl, token: githubToken }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'ไม่สามารถวิเคราะห์ข้อมูลจาก GitHub ได้');
+      }
+
+      const data: AnalysisResult = await response.json();
+      setResult(data);
+
+      // ถ้ามี activeFilePath จากการแชร์ ให้เปิด SideDrawer ดึงโค้ดอัตโนมัติ
+      if (activeFilePath) {
+        const parsed = parseGitHubUrl(cleanUrl);
+        if (parsed) {
+          void handleSelectNode(activeFilePath, 'other', parsed.owner, parsed.repo, parsed.branch);
+        }
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ';
+      setErrorMessage(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // โหลด state จาก Query Parameter (?state=...) เมื่อโหลดหน้าเว็บครั้งแรก
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const stateParam = new URLSearchParams(window.location.search).get('state');
+    if (stateParam) {
+      const decoded = decodeShareableState(stateParam);
+      if (decoded?.url) {
+        setUrl(decoded.url);
+        void executeAnalysis(decoded.url, '', decoded.activeNode);
+      }
+    }
+  }, []);
+
+  // TODO 4.12: ฟังก์ชัน handleSubmit(e: React.FormEvent)
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    void executeAnalysis(url, token);
+  };
+
   // TODO 4.14: ฟังก์ชัน handleShare()
   const handleShare = () => {
-    if (!url) return;
+    if (!url || typeof window === 'undefined') return;
     const shareCode = encodeShareableState(
       url,
       drawerState.isOpen ? drawerState.filePath ?? undefined : undefined,
@@ -158,10 +160,14 @@ export default function HomePage() {
     
     const shareUrl = `${window.location.origin}${window.location.pathname}?state=${shareCode}`;
 
-    navigator.clipboard.writeText(shareUrl).then(() => {
-      setShareCopied(true);
-      setTimeout(() => setShareCopied(false), 3000);
-    });
+    if (navigator?.clipboard?.writeText) {
+      void navigator.clipboard.writeText(shareUrl).then(() => {
+        setShareCopied(true);
+        setTimeout(() => setShareCopied(false), 3000);
+      }).catch(() => {
+        // Fallback / ignore clipboard failure
+      });
+    }
   };
 
   // คำนวณสถิติและคะแนนสุขภาพโค้ดล่วงหน้าถ้ามีผลลัพธ์
@@ -323,7 +329,9 @@ export default function HomePage() {
               <FlowCanvas
                 nodes={result.nodes}
                 edges={result.edges}
-                onSelectNode={(filePath, fileType) => handleSelectNode(filePath, fileType)}
+                onSelectNode={(filePath, fileType) => {
+                  void handleSelectNode(filePath, fileType);
+                }}
               />
             </div>
           </section>

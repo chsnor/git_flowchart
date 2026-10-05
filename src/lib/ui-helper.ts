@@ -10,13 +10,13 @@ export function validateUrlInput(input: string): { isValid: boolean; errorMessag
   }
 
   const trimmed = input.trim();
+  const lowerInput = trimmed.toLowerCase();
 
   // TODO 4.2: ตรวจสอบความปลอดภัยเบื้องต้น (XSS / Suspicious Input Guard)
-  // ปรับ Regex ให้เรียบง่าย ป้องกัน ReDoS และผ่าน SonarQube Reliability Check
-  const lowerInput = trimmed.toLowerCase();
+  // ตรวจสอบแบบ string search และการเช็คแท็กพื้นฐานอย่างปลอดภัย
   const containsXss = lowerInput.includes('<script') || 
                       lowerInput.includes('javascript:') || 
-                      /<[^>]+>/.test(trimmed);
+                      (lowerInput.includes('<') && lowerInput.includes('>'));
 
   if (containsXss) {
     return { isValid: false, errorMessage: 'URL ต้องมาจาก github.com เท่านั้น' };
@@ -41,8 +41,8 @@ export function formatRepoStats(totalFiles: number, filteredFiles: number): {
   summaryText: string;
 } {
   // TODO 4.5: ป้องกันข้อผิดพลาดทางตัวเลข (Math Safety)
-  const rawCount = Math.max(0, totalFiles);
-  const analyzedCount = Math.max(0, filteredFiles);
+  const rawCount = Math.max(0, Number.isFinite(totalFiles) ? totalFiles : 0);
+  const analyzedCount = Math.max(0, Number.isFinite(filteredFiles) ? filteredFiles : 0);
   const ignoredCount = Math.max(0, rawCount - analyzedCount);
 
   // TODO 4.6: สร้างข้อความสรุปผล (Summary Text Construction)
@@ -66,7 +66,7 @@ export function calculateHealthScore(totalRelations: number, filteredFiles: numb
   ratio: number;
   description: string;
 } {
-  if (filteredFiles <= 0) {
+  if (!filteredFiles || filteredFiles <= 0) {
     return {
       grade: 'N/A',
       ratio: 0,
@@ -74,8 +74,9 @@ export function calculateHealthScore(totalRelations: number, filteredFiles: numb
     };
   }
 
-  const validRelations = Math.max(0, totalRelations);
-  const ratio = Number((validRelations / filteredFiles).toFixed(2));
+  const validRelations = Math.max(0, Number.isFinite(totalRelations) ? totalRelations : 0);
+  const computedRatio = validRelations / filteredFiles;
+  const ratio = Math.round(computedRatio * 100) / 100;
 
   if (ratio >= 0.8 && ratio <= 2.5) {
     return {
@@ -106,14 +107,21 @@ export function calculateHealthScore(totalRelations: number, filteredFiles: numb
  * ฟังก์ชันเข้ารหัส State ของหน้าจอเพื่อสร้าง URL ที่สามารถแชร์ได้
  */
 export function encodeShareableState(url: string, activeNode?: string): string {
+  if (!url) return '';
+
   try {
     const payload = { url, activeNode: activeNode || null };
     const jsonString = JSON.stringify(payload);
     
-    if (typeof window !== 'undefined') {
-      return btoa(encodeURIComponent(jsonString));
+    if (typeof window !== 'undefined' && typeof window.btoa === 'function') {
+      return window.btoa(encodeURIComponent(jsonString));
     }
-    return Buffer.from(jsonString).toString('base64');
+    
+    if (typeof Buffer !== 'undefined') {
+      return Buffer.from(encodeURIComponent(jsonString), 'utf-8').toString('base64');
+    }
+
+    return '';
   } catch {
     return '';
   }
@@ -123,21 +131,31 @@ export function encodeShareableState(url: string, activeNode?: string): string {
  * ฟังก์ชันถอดรหัส State จาก URL query string
  */
 export function decodeShareableState(encodedStr: string): { url: string; activeNode?: string } | null {
-  if (!encodedStr) return null;
+  if (!encodedStr || typeof encodedStr !== 'string') return null;
 
   try {
-    let jsonString = '';
-    if (typeof window !== 'undefined') {
-      jsonString = decodeURIComponent(atob(encodedStr));
+    let rawDecoded = '';
+    
+    if (typeof window !== 'undefined' && typeof window.atob === 'function') {
+      rawDecoded = window.atob(encodedStr);
+    } else if (typeof Buffer !== 'undefined') {
+      rawDecoded = Buffer.from(encodedStr, 'base64').toString('utf-8');
     } else {
-      jsonString = Buffer.from(encodedStr, 'base64').toString('utf-8');
+      return null;
+    }
+
+    let jsonString = rawDecoded;
+    try {
+      jsonString = decodeURIComponent(rawDecoded);
+    } catch {
+      // If rawDecoded is already valid JSON without percent-encoding, keep it
     }
 
     const parsed = JSON.parse(jsonString);
-    if (parsed && typeof parsed.url === 'string') {
+    if (parsed && typeof parsed === 'object' && typeof parsed.url === 'string') {
       return {
         url: parsed.url,
-        activeNode: parsed.activeNode || undefined,
+        activeNode: typeof parsed.activeNode === 'string' ? parsed.activeNode : undefined,
       };
     }
     return null;
