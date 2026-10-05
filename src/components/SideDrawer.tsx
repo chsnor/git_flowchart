@@ -5,11 +5,12 @@ import { NextFileType } from '../types';
 
 export interface SideDrawerProps {
   isOpen: boolean;
-  filePath: string | null;
-  fileContent: string | null;
-  fileType: NextFileType | null;
-  githubRawUrl?: string | null;
   onClose: () => void;
+  filePath?: string | null;
+  fileType?: NextFileType | string | null;
+  fileContent?: string | null;
+  rawCode?: string | null;
+  githubRawUrl?: string | null;
 }
 
 /**

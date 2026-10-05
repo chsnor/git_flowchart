@@ -404,9 +404,9 @@ export default function HomePage() {
         {/* TODO 4.16: นำคอมโพเนนต์ SideDrawer (คนที่ 5) มาวาง และผูกค่ากับ drawerState */}
         <SideDrawer
           isOpen={drawerState.isOpen}
-          filePath={drawerState.filePath ?? null}
-          fileContent={drawerState.fileContent}
-          fileType={drawerState.fileType ?? null}
+          filePath={drawerState.filePath ?? undefined}
+          fileContent={drawerState.fileContent ?? undefined}
+          fileType={drawerState.fileType ?? undefined}
           githubRawUrl={drawerState.githubRawUrl ?? undefined}
           onClose={handleCloseDrawer}
         />
