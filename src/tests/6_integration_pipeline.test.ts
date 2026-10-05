@@ -233,7 +233,7 @@ describe('คนที่ 6: pipeline.ts (Integration Pipeline, QA & Deployment)
   // ==========================================
   // ส่วนที่ 4: Future Integration Tests (เตรียมพร้อมสำหรับสมาชิกคนที่ 2 ถึง 5)
   // ==========================================
-  describe.skip('เฟสที่ 2: Integration Test (คนที่ 2: Parser Engine)', () => {
+  describe('เฟสที่ 2: Integration Test (คนที่ 2: Parser Engine)', () => {
     it('1. filterTreeFiles: ต้องคัดกรอง node_modules, .next, .d.ts ออกอย่างถูกต้อง และเคารพ maxLimit', async () => {
       const { filterTreeFiles } = await import('../lib/parser');
       const sampleItems: GitHubTreeItem[] = [
@@ -309,7 +309,7 @@ describe('คนที่ 6: pipeline.ts (Integration Pipeline, QA & Deployment)
     });
   });
 
-  describe.skip('เฟสที่ 3: Integration Test (คนที่ 3: Flow & Mermaid Generator)', () => {
+  describe('เฟสที่ 3: Integration Test (คนที่ 3: Flow & Mermaid Generator)', () => {
     it('1. sanitizeNodeId: ลบวงเล็บ Next.js Route Groups และแทนที่อักขระพิเศษด้วย Underscore', async () => {
       const { sanitizeNodeId } = await import('../lib/generator');
       expect(sanitizeNodeId('src/app/(auth)/login/page.tsx')).toBe('src_app_auth_login_page_tsx');
@@ -352,11 +352,11 @@ describe('คนที่ 6: pipeline.ts (Integration Pipeline, QA & Deployment)
 
       const syntax = generateMermaidSyntax(relations);
       expect(syntax).toContain('graph TD');
-      expect(syntax).toContain('-->|submit|');
+      expect(syntax).toMatch(/-->\|"?submit"?\|/);
     });
   });
 
-  describe.skip('เฟสที่ 4 และ 5: Contract Test (คนที่ 4: Dashboard UI & คนที่ 5: Side Inspector)', () => {
+  describe('เฟสที่ 4 และ 5: Contract Test (คนที่ 4: Dashboard UI & คนที่ 5: Side Inspector)', () => {
     it('ตรวจสอบโครงสร้าง AnalysisResult ว่าส่งต่อฟิลด์ที่ SideDrawer และ FlowCanvas ต้องใช้ครบ 100%', async () => {
       const mockTree: GitHubTreeItem[] = [
         { path: 'src/app/page.tsx', mode: '100644', type: 'blob', sha: '1' }
@@ -383,7 +383,7 @@ describe('คนที่ 6: pipeline.ts (Integration Pipeline, QA & Deployment)
   // ==========================================
   // ส่วนที่ 5: System Test / End-to-End User Scenarios (ระบบโดยรวม)
   // ==========================================
-  describe.skip('ระบบโดยรวม: System Test / End-to-End User Scenarios', () => {
+  describe('ระบบโดยรวม: System Test / End-to-End User Scenarios', () => {
     it('Scenario 1 (Happy Path E2E): ผู้ใช้งานกรอก URL โปรเจกต์ Next.js จริง -> รับแผนผัง Flow ครบ 100%', async () => {
       const { POST } = await import('../app/api/analyze/route');
       const userRequest = {
