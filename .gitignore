@@ -20,10 +20,10 @@
 # production
 /build
 
-# misc
+# misc & OS
 .DS_Store
+Thumbs.db
 *.pem
-FUTURE_IDEAS.md
 
 # debug
 npm-debug.log*
@@ -31,7 +31,7 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files
 .env*
 
 # vercel
@@ -41,8 +41,21 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# local agent skills & locks
+# local agent skills, configs & prompts
 .agents/
 .freebuff/
 skills-lock.json
 .impeccable/
+AGENTS.md
+CLAUDE.md
+FUTURE_IDEAS.md
+
+# report scripts & generated docs
+*.docx
+*.pptx
+report_assets/
+make_report_docx.js
+SHORT_REPORT.md
+repomix-output.xml
+capture_code_snippets.js
+generate_canva_slides.js

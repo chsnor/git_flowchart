@@ -8,44 +8,30 @@ import 'prismjs/components/prism-css';
 import 'prismjs/components/prism-clike';
 import 'prismjs/components/prism-markup';
 
-/**
- * 1. ตรวจสอบภาษาจากนามสกุลไฟล์
- */
+const EXTENSION_LANGUAGE_MAP: Record<string, string> = {
+  ts: 'typescript',
+  tsx: 'tsx',
+  js: 'javascript',
+  mjs: 'javascript',
+  cjs: 'javascript',
+  jsx: 'jsx',
+  json: 'json',
+  css: 'css',
+  html: 'markup',
+  xml: 'markup',
+  svg: 'markup',
+};
+
 export function getLanguageFromPath(filePath: string): string {
   if (!filePath || typeof filePath !== 'string') return 'clike';
 
-  const cleanPath = filePath.split('?')[0].split('#')[0];
-  const lastDot = cleanPath.lastIndexOf('.');
-
-  // ถ้าไม่มีจุด หรือไม่มีนามสกุลไฟล์ (เช่น Dockerfile)
-  if (lastDot === -1 || lastDot === cleanPath.length - 1) {
+  const lastDot = filePath.lastIndexOf('.');
+  if (lastDot === -1 || lastDot === filePath.length - 1) {
     return 'clike';
   }
 
-  const extension = cleanPath.slice(lastDot + 1).toLowerCase();
-
-  switch (extension) {
-    case 'ts':
-      return 'typescript';
-    case 'tsx':
-      return 'tsx';
-    case 'js':
-    case 'mjs':
-    case 'cjs':
-      return 'javascript';
-    case 'jsx':
-      return 'jsx';
-    case 'json':
-      return 'json';
-    case 'css':
-      return 'css';
-    case 'html':
-    case 'xml':
-    case 'svg':
-      return 'markup';
-    default:
-      return 'clike';
-  }
+  const extension = filePath.slice(lastDot + 1).toLowerCase();
+  return EXTENSION_LANGUAGE_MAP[extension] ?? 'clike';
 }
 
 export interface FormattedCodeResult {
@@ -56,9 +42,6 @@ export interface FormattedCodeResult {
   displayedLines: number;
 }
 
-/**
- * 2. ตัดทอนและนับบรรทัดของโค้ด
- */
 export function formatCodeSnippet(rawCode: string, maxLines: number = 300): FormattedCodeResult {
   if (typeof rawCode !== 'string') {
     return {
@@ -72,49 +55,36 @@ export function formatCodeSnippet(rawCode: string, maxLines: number = 300): Form
 
   const lines = rawCode.split('\n');
   const totalLines = lines.length;
-
-  if (totalLines > maxLines) {
-    const truncatedCode = lines.slice(0, maxLines).join('\n');
-    return {
-      snippet: truncatedCode,
-      code: truncatedCode,
-      totalLines,
-      isTruncated: true,
-      displayedLines: maxLines,
-    };
-  }
+  const isTruncated = totalLines > maxLines;
+  const code = isTruncated ? lines.slice(0, maxLines).join('\n') : rawCode;
 
   return {
-    snippet: rawCode,
-    code: rawCode,
+    snippet: code,
+    code,
     totalLines,
-    isTruncated: false,
-    displayedLines: totalLines,
+    isTruncated,
+    displayedLines: isTruncated ? maxLines : totalLines,
   };
 }
 
-/**
- * 3. ทำ Syntax Highlighting ปลอดภัยต่อการเรนเดอร์
- */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 export function highlightCodeWithPrism(code: string, language: string): string {
   if (!code) return '';
 
   const grammar = Prism.languages[language];
-
   if (!grammar) {
-    // Escape HTML กรณีไม่รู้จักภาษา เพื่อความปลอดภัยและไม่ crash
-    return code
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
+    return escapeHtml(code);
   }
 
   try {
     return Prism.highlight(code, grammar, language);
   } catch {
-    return code
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
+    return escapeHtml(code);
   }
 }

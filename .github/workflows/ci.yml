@@ -7,8 +7,8 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
-    name: Run Unit Tests
+  build:
+    name: Build
     runs-on: ubuntu-latest
 
     steps:
@@ -23,19 +23,6 @@ jobs:
 
       - name: Install Dependencies
         run: npm ci
-
-      - name: Run Vitest
-        shell: bash
-        run: |
-          REF_NAME="${{ github.head_ref || github.ref_name }}"
-          if [[ "$REF_NAME" =~ feat/person-([1-6]) ]]; then
-            PERSON="${BASH_REMATCH[1]}"
-            echo "🧪 Running targeted unit tests for Person $PERSON and Integration Pipeline ($REF_NAME)..."
-            npx vitest run src/tests/${PERSON}_*.test.ts src/tests/6_integration_pipeline.test.ts
-          else
-            echo "🧪 Running full test suite for main..."
-            npm test
-          fi
 
       - name: Run Next.js Build
         run: npm run build

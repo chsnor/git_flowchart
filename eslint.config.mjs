@@ -12,6 +12,13 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    "make_report_docx.js",
+    "capture_code_snippets.js",
+    "generate_canva_slides.js",
+    "learning-web/**",
+    "dist/**",
+    "node_modules/**",
+    ".agents/**",
   ]),
 ]);
 

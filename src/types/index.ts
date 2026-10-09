@@ -1,6 +1,4 @@
-// src/types/index.ts
-
-export type NextFileType = 'page' | 'layout' | 'action' | 'middleware' | 'store' | 'component' | 'api' | 'other';
+export type NextFileType = 'page' | 'layout' | 'action' | 'middleware' | 'store' | 'component' | 'hook' | 'api' | 'other';
 
 export interface GitHubTreeItem {
   path: string;
@@ -38,18 +36,22 @@ export interface FlowEdgeItem {
   target: string;
   label?: string;
   animated?: boolean;
+  style?: { stroke?: string; [key: string]: unknown };
 }
 
 export interface AnalysisResult {
   repoName: string;
   owner: string;
+  branch?: string;
   totalFiles: number;
   filteredFilesCount: number;
   relations: CodeRelation[];
   nodes: FlowNodeItem[];
   edges: FlowEdgeItem[];
-  mermaidSyntax: string;
+  mermaidSyntax?: string;
   isCached?: boolean;
+  cachedAt?: number;
+  commitSha?: string;
   executionTimeMs?: number;
 }
 
@@ -60,3 +62,4 @@ export interface SideDrawerState {
   fileType: NextFileType | null;
   githubRawUrl: string | null;
 }
+
